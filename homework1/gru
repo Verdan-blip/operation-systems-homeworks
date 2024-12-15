@@ -1,0 +1,45 @@
+#!/usr/bin/env python3
+
+import os
+import sys
+import random
+
+def fork_minion_process() -> int:
+
+    child_pid = os.fork()
+
+    if (child_pid == 0):
+        s = random.randrange(5, 10)
+        os.execve('minion', ('minion', str(s)), {})
+
+    return child_pid
+
+n = int(sys.argv[1])
+
+pid = os.getpid()
+child_pids = []
+
+for i in range(n):
+    child_pid = fork_minion_process()
+    if child_pid != 0:
+        print('Gru[{0}]: process created. PID <{1}>.'.format(pid, child_pid))
+        child_pids.append(child_pid)
+
+while len(child_pids) > 0:
+
+    terminated_pid, status = os.wait()
+    status_code = os.WEXITSTATUS(status)
+
+    print('Gru[{0}]: process terminated. PID <{1}>. Exit status <{2}>.'.format(pid, terminated_pid, status_code & 0x00FF))
+
+    child_pids.remove(terminated_pid)
+
+    if status_code != 0:
+
+        child_pid = fork_minion_process()
+
+        if child_pid != 0:
+            print('Gru[{0}]: process created. PID <{1}>.'.format(pid, child_pid))
+            child_pids.append(child_pid)
+
+sys.exit(0)
