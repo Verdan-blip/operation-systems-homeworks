@@ -1,0 +1,59 @@
+#!/usr/bin/env python3
+
+import os
+import sys
+import time
+import random
+import signal
+import select
+
+s = 0
+
+def handle_sigusr1(signum, frame):
+    sys.stderr.write(f'Processed {s} lines\n')
+    sys.stderr.flush()
+    
+def close_descriptors(*descriptors):
+    for descriptor in descriptors:
+        os.close(descriptor)
+    
+signal.signal(signal.SIGUSR1, handle_sigusr1)
+
+a_read, a_write = os.pipe()
+b_read, b_write = os.pipe()
+c_read, c_write = os.pipe()
+
+p1 = os.fork()
+if p1 == 0:
+    os.dup2(a_write, sys.stdout.fileno())
+    close_descriptors(a_read, b_read, b_write, c_read, c_write)
+    os.execlp('./generator', 'generator', str(random.randint(120, 180)))
+    
+p2 = os.fork()
+if p2 == 0:
+    os.dup2(b_read, sys.stdin.fileno())
+    os.dup2(c_write, sys.stdout.fileno())
+    close_descriptors(a_read, a_write, b_write, c_read)
+    os.execlp('/usr/bin/bc', 'bc')
+    
+os.close(a_write)
+os.close(b_read)
+os.close(c_write)   
+
+with os.fdopen(a_read, 'r') as pipe_a, \
+    os.fdopen(b_write, 'w') as pipe_b, \
+    os.fdopen(c_read, 'r') as pipe_c:
+    
+    for expression in pipe_a:
+        expression = expression.strip()
+        pipe_b.write(expression + '\n')
+        pipe_b.flush()
+
+        result = pipe_c.readline().strip()
+        print(f'{expression} = {result}')
+        
+        s += 1
+
+os.wait()
+sys.exit(0)
+
