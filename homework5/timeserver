@@ -1,0 +1,22 @@
+#!/usr/bin/env python3
+
+import sys
+import socket
+from datetime import datetime
+
+host = '127.0.0.1'
+port = int(sys.argv[1])
+
+socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+socket.bind((host, port))
+socket.listen(1)
+
+while True:
+    connection, addr = socket.accept()
+    current_time = datetime.now().strftime("%d.%m.%Y %H:%M")
+    connection.sendall(current_time.encode('utf-8'))
+
+    connection.close()
+
+socket.close()
+

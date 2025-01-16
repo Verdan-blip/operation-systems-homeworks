@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+
+import sys
+import socket
+
+address = sys.argv[1]
+port = int(sys.argv[2])
+
+socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+ 
+socket.connect((address, port))
+data = socket.recv(1024).decode('utf-8')
+print(data)
+
+socket.close()
+
